@@ -198,20 +198,10 @@ int main(int argc, char *argv[])
     if (p->remaining_time >= quantum_length) {
       current_time += quantum_length;
       p->remaining_time -= quantum_length;
-      // update waiting time for processes not running on CPU
-      TAILQ_FOREACH(q, &list, pointers) {
-        if (q->pid != p->pid)
-          q->waiting_time += quantum_length;
-      }
     }
     // process finishes early
     else if (p->remaining_time < quantum_length) {
       current_time += p->remaining_time; 
-      // update waiting time for processes not running on CPU
-      TAILQ_FOREACH(q, &list, pointers) {
-        if (q->pid != p->pid)
-          q->waiting_time += p->remaining_time;
-      }
       p->remaining_time = 0; // process finished
     }
     // add any processes to queue that arrived during time slice
@@ -235,7 +225,6 @@ int main(int argc, char *argv[])
           if (match) TAILQ_INSERT_AFTER(&tmp, x, y, pointers);
           else TAILQ_INSERT_HEAD(&tmp, y, pointers);
         }
-        data[i].waiting_time = current_time - data[i].arrival_time; // remember to change waiting time for these processes :)
       }
     }
     while (!TAILQ_EMPTY(&tmp)) {
@@ -250,7 +239,11 @@ int main(int argc, char *argv[])
       TAILQ_REMOVE(&list, p, pointers);
       TAILQ_INSERT_TAIL(&list, p, pointers);
     }
-    else TAILQ_REMOVE(&list, p, pointers);
+    else {
+      //printf("pid: %d, %d, %d, %d\n", p->pid, current_time, p->start_exec_time, p->burst_time);
+      p->waiting_time = current_time - (p->arrival_time) - (p->burst_time);
+      TAILQ_REMOVE(&list, p, pointers);
+    }
   }
   // calculate totals
   for (int i = 0; i < size; i++) {
