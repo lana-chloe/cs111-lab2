@@ -184,6 +184,7 @@ int main(int argc, char *argv[])
   while (!TAILQ_EMPTY(&list)) {
     start_time = current_time;
     struct process *p = TAILQ_FIRST(&list);
+    //printf("pid running: %d\n", p->pid);
     struct process *q;
 
     // first time process is on CPU
@@ -224,22 +225,28 @@ int main(int argc, char *argv[])
         else {
           struct process *x = TAILQ_FIRST(&tmp);
           struct process *y = &data[i];
+          bool match = false;
           TAILQ_FOREACH(q, &tmp, pointers) {
-            if (q->arrival_time >= x->arrival_time && q->arrival_time < data[i].arrival_time)
+            if (q->arrival_time >= x->arrival_time && q->arrival_time < data[i].arrival_time) {
               x = q;
+              match = true;
+            }
           }
-          TAILQ_INSERT_AFTER(&tmp, x, y, pointers);
+          if (match) TAILQ_INSERT_AFTER(&tmp, x, y, pointers);
+          else TAILQ_INSERT_HEAD(&tmp, y, pointers);
         }
         data[i].waiting_time = current_time - data[i].arrival_time; // remember to change waiting time for these processes :)
       }
     }
     while (!TAILQ_EMPTY(&tmp)) {
       q = TAILQ_FIRST(&tmp);
+      //printf("pid insert: %d\n", q->pid);
       TAILQ_REMOVE(&tmp, q, pointers);
       TAILQ_INSERT_TAIL(&list, q, pointers);
     }
     // add old process to end of queue if remaining time > 0
     if (p->remaining_time > 0) {
+      //printf("pid insert: %d\n", p->pid);
       TAILQ_REMOVE(&list, p, pointers);
       TAILQ_INSERT_TAIL(&list, p, pointers);
     }
@@ -249,6 +256,7 @@ int main(int argc, char *argv[])
   for (int i = 0; i < size; i++) {
     total_waiting_time += data[i].waiting_time;
     total_response_time += data[i].response_time;
+    //printf("pid: %d, waiting: %d, response: %d\n", data[i].pid, data[i].waiting_time, data[i].response_time);
   }
 
   printf("Average waiting time: %.2f\n", (float)total_waiting_time / (float)size);
